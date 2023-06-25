@@ -34,14 +34,14 @@ func (s *Server) Start() {
 	//TODO implement me
 	go func() {
 		// 1. create tcp socket
-		addr, err := net.ResolveIPAddr(s.IPVersion, s.IP)
+		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
 			fmt.Println("resolve tcp ip error: ", err)
 			return
 		}
 
 		// 2. listen socket
-		listen, err := net.Listen(s.IPVersion, s.IP)
+		listen, err := net.ListenTCP(s.IPVersion, addr)
 		if err != nil {
 			fmt.Println("listen tcp ip error: ", err)
 			return
@@ -89,4 +89,6 @@ func (s *Server) Stop() {
 func (s *Server) Serve() {
 	//TODO implement me
 	s.Start()
+
+	select {}
 }
