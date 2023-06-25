@@ -1,7 +1,6 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"zinx/ziface"
@@ -49,22 +48,33 @@ func (s *Server) Start() {
 		}
 
 		fmt.Println("Start Zinx Server: ", s.Name, " success, Now Listening...")
-
-		var cid uint64
-		cid = 0
-
 		// 3. accept client conn
 		for {
-			conn, err := listen.AcceptTCP()
+			conn, err := listen.Accept()
 			if err != nil {
 				fmt.Println("accept conn error: ", err)
 				continue
 			}
 
 			// handle conn buss
-			dealConn := NewConnection(conn, cid, CallbackToClient)
-			cid++
-			go dealConn.Start()
+			go func() {
+				for {
+					buf := make([]byte, 512)
+					n, err := conn.Read(buf)
+					if err != nil {
+						fmt.Println("read msg error", err)
+						continue
+					}
+
+					fmt.Println("receive client msg: ", string(buf[:n]))
+
+					if _, err := conn.Write(buf[:n]); err != nil {
+						fmt.Println("write msg error", err)
+						continue
+					}
+
+				}
+			}()
 		}
 
 	}()
@@ -81,14 +91,4 @@ func (s *Server) Serve() {
 	s.Start()
 
 	select {}
-}
-
-func CallbackToClient(conn *net.TCPConn, data []byte, count int) error {
-	//回显业务
-	fmt.Println("[Conn Handle] CallBackToClient ... ")
-	if _, err := conn.Write(data[:count]); err != nil {
-		fmt.Println("write back buf err ", err)
-		return errors.New("CallBackToClient error")
-	}
-	return nil
 }
