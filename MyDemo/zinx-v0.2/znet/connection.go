@@ -14,10 +14,10 @@ type Connection struct {
 	localAddr   string
 	remoteAddr  string
 	name        string
-	Router      ziface.IRouter
+	handlerApi  ziface.HandFunc
 }
 
-func NewConnection(conn *net.TCPConn, connID uint64, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint64, callbackApi ziface.HandFunc) *Connection {
 	return &Connection{
 		connID:      connID,
 		conn:        conn,
@@ -25,7 +25,7 @@ func NewConnection(conn *net.TCPConn, connID uint64, router ziface.IRouter) *Con
 		exitBufChan: make(chan bool, 1),
 		localAddr:   conn.LocalAddr().String(),
 		remoteAddr:  conn.RemoteAddr().String(),
-		Router:      router,
+		handlerApi:  callbackApi,
 	}
 }
 
@@ -36,23 +36,26 @@ func (c *Connection) StartReader() {
 
 	for {
 		buf := make([]byte, 512)
-		_, err := c.conn.Read(buf)
+		count, err := c.conn.Read(buf)
 		if err != nil {
 			fmt.Printf("conn id: %d, read msg error: %v \n", c.connID, err)
 			c.exitBufChan <- true
 			return
 		}
-		request := Request{
-			conn: c,
-			data: buf,
-		}
-		// 执行用户定义的方法，这里感觉使用Handler名称来替代Router更好
-		go func(request ziface.IRequest) {
-			c.Router.PreRouter(request)
-			c.Router.Handler(request)
-			c.Router.AfterRouter(request)
 
-		}(&request)
+		if err != nil {
+			fmt.Printf("conn id: %d, send msg error: %v \n", c.connID, err)
+			c.exitBufChan <- true
+			return
+		}
+
+		// exec callback handler func
+		err = c.handlerApi(c.conn, buf, count)
+		if err != nil {
+			fmt.Printf("exec callback func failed: %v \n", err)
+			c.exitBufChan <- true
+			return
+		}
 
 	}
 }
