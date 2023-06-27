@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"zinx/config"
 	"zinx/ziface"
 )
 
@@ -12,22 +13,24 @@ type Server struct {
 	IP        string
 	IPVersion string
 	Name      string
+	Version   string
 	Router    ziface.IRouter
 }
 
-func NewServer(name string, ip string, port int) ziface.IServer {
-	address := net.ParseIP(ip)
+func NewServer() ziface.IServer {
+	address := net.ParseIP(config.Conf.IP)
 	if address == nil {
 		panic("ip is incorrect format")
 	}
-	if port <= 0 && port > 65535 {
+	if config.Conf.PORT <= 0 && config.Conf.PORT > 65535 {
 		panic("port is incorrect format")
 	}
 	s := &Server{
-		Port:      port,
-		IP:        ip,
+		Port:      config.Conf.PORT,
+		IP:        config.Conf.IP,
 		IPVersion: "tcp",
-		Name:      name,
+		Name:      config.Conf.Name,
+		Version:   config.Conf.Version,
 		Router:    nil,
 	}
 	return s
@@ -35,6 +38,8 @@ func NewServer(name string, ip string, port int) ziface.IServer {
 
 func (s *Server) Start() {
 	//TODO implement me
+	fmt.Printf("Server: %s, Address: %s:%d start success....\n", s.Name, s.IP, s.Port)
+
 	go func() {
 		// 1. create tcp socket
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))

@@ -1,0 +1,8 @@
+{
+  "name": "ZinxServerApp",
+  "ip": "127.0.0.1",
+  "port": 8888,
+  "max_packet_size": 512,
+  "max_conn": 1000,
+  "version": "0.4"
+}

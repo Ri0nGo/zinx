@@ -3,6 +3,7 @@ package znet
 import (
 	"fmt"
 	"net"
+	"zinx/config"
 	"zinx/ziface"
 )
 
@@ -29,13 +30,14 @@ func NewConnection(conn *net.TCPConn, connID uint64, router ziface.IRouter) *Con
 	}
 }
 
+// StartReader 读数据Goroutine
 func (c *Connection) StartReader() {
 	fmt.Println("Reader Goroutine Is Running....")
 	defer fmt.Println(c.RemoteAddrString(), " conn reader exit! ")
 	defer c.Stop()
 
 	for {
-		buf := make([]byte, 512)
+		buf := make([]byte, config.Conf.MaxPacketSize)
 		_, err := c.conn.Read(buf)
 		if err != nil {
 			fmt.Printf("conn id: %d, read msg error: %v \n", c.connID, err)
@@ -57,6 +59,7 @@ func (c *Connection) StartReader() {
 	}
 }
 
+// Start 开始执行
 func (c *Connection) Start() {
 	fmt.Printf("conn id = %d is starting...\n", c.connID)
 
@@ -70,6 +73,7 @@ func (c *Connection) Start() {
 	}
 }
 
+// Stop 停止执行
 func (c *Connection) Stop() {
 	//TODO implement me
 	fmt.Printf("conn id: %d is stop \n", c.connID)
@@ -86,6 +90,7 @@ func (c *Connection) Stop() {
 	close(c.exitBufChan)
 }
 
+// SendMsg 发送消息
 func (c *Connection) SendMsg(data []byte) error {
 	_, err := c.conn.Write(data)
 	if err != nil {
@@ -94,14 +99,17 @@ func (c *Connection) SendMsg(data []byte) error {
 	return nil
 }
 
+// GetConnID 获取连接id
 func (c *Connection) GetConnID() uint64 {
 	return c.connID
 }
 
+// GetConnection 获取连接对象
 func (c *Connection) GetConnection() *net.TCPConn {
 	return c.conn
 }
 
+// GetName 获取连接名称
 func (c *Connection) GetName() string {
 	return c.name
 }
