@@ -7,7 +7,7 @@ import (
 
 type ZinxConfig struct {
 	PORT          int    `json:"port"`
-	MaxPacketSize int    `json:"max_packet_size"`
+	MaxPacketSize uint32 `json:"max_packet_size"`
 	MaxConn       int    `json:"max_conn"`
 	Name          string `json:"name"`
 	IP            string `json:"ip"`
