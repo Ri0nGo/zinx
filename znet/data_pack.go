@@ -10,6 +10,10 @@ import (
 
 type DataPack struct{}
 
+func NewDataPack() *DataPack {
+	return &DataPack{}
+}
+
 func (d *DataPack) GetHeadLen() uint32 {
 	// 自定义消息头长度，id + data len
 	return 8
@@ -52,7 +56,7 @@ func (d *DataPack) UnPack(binaryData []byte) (ziface.IMessage, error) {
 	}
 
 	// 校样数据长度是否超过运行的最大长度
-	if config.Conf.MaxPacketSize > 0 && config.Conf.MaxPacketSize > msg.dataLen {
+	if config.Conf.MaxPacketSize > 0 && config.Conf.MaxPacketSize < msg.dataLen {
 		return nil, errors.New("too large msg data length")
 	}
 	return msg, nil
