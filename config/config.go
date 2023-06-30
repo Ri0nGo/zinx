@@ -17,7 +17,7 @@ type ZinxConfig struct {
 var Conf *ZinxConfig
 
 func (zc *ZinxConfig) Reload() {
-	bytes, err := os.ReadFile("../../config/config.json")
+	bytes, err := os.ReadFile("config/config.json")
 	if err != nil {
 		panic(err)
 	}

@@ -38,7 +38,7 @@ func NewServer() ziface.IServer {
 
 func (s *Server) Start() {
 	//TODO implement me
-	fmt.Printf("Server: %s, Address: %s:%d start success....\n", s.Name, s.IP, s.Port)
+	fmt.Printf("Server: %s, Address: %s:%d start success....\nt ", s.Name, s.IP, s.Port)
 
 	go func() {
 		// 1. create tcp socket

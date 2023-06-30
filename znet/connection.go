@@ -2,8 +2,8 @@ package znet
 
 import (
 	"fmt"
+	"io"
 	"net"
-	"zinx/config"
 	"zinx/ziface"
 )
 
@@ -37,17 +37,43 @@ func (c *Connection) StartReader() {
 	defer c.Stop()
 
 	for {
-		buf := make([]byte, config.Conf.MaxPacketSize)
-		_, err := c.conn.Read(buf)
+		// 创建消息包对象
+		dp := NewDataPack()
+
+		// 获取客户端发送的消息头长度
+		headData := make([]byte, dp.GetHeadLen())
+		_, err := io.ReadFull(c.conn, headData)
 		if err != nil {
 			fmt.Printf("conn id: %d, read msg error: %v \n", c.connID, err)
 			c.exitBufChan <- true
-			return
+			continue
 		}
+
+		// 拆包，获取msgid 和 data len
+		messagePkg, err := dp.UnPack(headData)
+		if err != nil {
+			fmt.Printf("conn id: %d, unpack msg data error: %v \n", c.connID, err)
+			c.exitBufChan <- true
+			continue
+		}
+
+		// 读取真实数据
+		if messagePkg.GetDataLen() > 0 {
+			dataBuf := make([]byte, messagePkg.GetDataLen())
+			_, err = io.ReadFull(c.conn, dataBuf)
+			if err != nil {
+				fmt.Printf("conn id: %d,  read msg data error: %v \n", c.connID, err)
+				c.exitBufChan <- true
+				continue
+			}
+			messagePkg.SetData(dataBuf)
+		}
+
 		request := Request{
 			conn: c,
-			data: buf,
+			data: messagePkg,
 		}
+		//fmt.Println(messagePkg.GetMsgId(), messagePkg.GetDataLen(), messagePkg.GetData())
 		// 执行用户定义的方法，这里感觉使用Handler名称来替代Router更好
 		go func(request ziface.IRequest) {
 			c.Router.PreRouter(request)
@@ -91,8 +117,13 @@ func (c *Connection) Stop() {
 }
 
 // SendMsg 发送消息
-func (c *Connection) SendMsg(data []byte) error {
-	_, err := c.conn.Write(data)
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	dp := NewDataPack()
+	msgPackBytes, err := dp.Pack(NewMessage(msgId, data))
+	if err != nil {
+		fmt.Printf("msg id: %d, pack msg data error:", msgId)
+	}
+	_, err = c.conn.Write(msgPackBytes)
 	if err != nil {
 		return err
 	}

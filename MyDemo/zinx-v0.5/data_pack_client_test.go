@@ -1,4 +1,4 @@
-package zinx_v0_5
+package main
 
 import (
 	"fmt"

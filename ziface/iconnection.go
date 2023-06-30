@@ -5,7 +5,7 @@ import "net"
 type IConnection interface {
 	Start()
 	Stop()
-	SendMsg([]byte) error
+	SendMsg(msgId uint32, data []byte) error
 	GetConnID() uint64
 	GetConnection() *net.TCPConn
 	GetName() string
