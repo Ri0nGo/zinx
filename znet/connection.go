@@ -15,10 +15,10 @@ type Connection struct {
 	localAddr   string
 	remoteAddr  string
 	name        string
-	Router      ziface.IRouter
+	MsgHandler  ziface.IMsgHandler
 }
 
-func NewConnection(conn *net.TCPConn, connID uint64, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint64, handler ziface.IMsgHandler) *Connection {
 	return &Connection{
 		connID:      connID,
 		conn:        conn,
@@ -26,7 +26,7 @@ func NewConnection(conn *net.TCPConn, connID uint64, router ziface.IRouter) *Con
 		exitBufChan: make(chan bool, 1),
 		localAddr:   conn.LocalAddr().String(),
 		remoteAddr:  conn.RemoteAddr().String(),
-		Router:      router,
+		MsgHandler:  handler,
 	}
 }
 
@@ -73,15 +73,11 @@ func (c *Connection) StartReader() {
 			conn: c,
 			data: messagePkg,
 		}
-		//fmt.Println(messagePkg.GetMsgId(), messagePkg.GetDataLen(), messagePkg.GetData())
-		// 执行用户定义的方法，这里感觉使用Handler名称来替代Router更好
-		go func(request ziface.IRequest) {
-			c.Router.PreRouter(request)
-			c.Router.Handler(request)
-			c.Router.AfterRouter(request)
 
-		}(&request)
-
+		err = c.MsgHandler.DoMsgHandler(&request)
+		if err != nil {
+			fmt.Println("exec msg handler error: ", err)
+		}
 	}
 }
 

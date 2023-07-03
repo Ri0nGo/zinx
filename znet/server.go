@@ -1,7 +1,6 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"zinx/config"
@@ -14,7 +13,8 @@ type Server struct {
 	IPVersion string
 	Name      string
 	Version   string
-	Router    ziface.IRouter
+	//Router    ziface.IRouter
+	MsgHandler ziface.IMsgHandler
 }
 
 func NewServer() ziface.IServer {
@@ -26,12 +26,12 @@ func NewServer() ziface.IServer {
 		panic("port is incorrect format")
 	}
 	s := &Server{
-		Port:      config.Conf.PORT,
-		IP:        config.Conf.IP,
-		IPVersion: "tcp",
-		Name:      config.Conf.Name,
-		Version:   config.Conf.Version,
-		Router:    nil,
+		Port:       config.Conf.PORT,
+		IP:         config.Conf.IP,
+		IPVersion:  "tcp",
+		Name:       config.Conf.Name,
+		Version:    config.Conf.Version,
+		MsgHandler: NewMsgHandler(),
 	}
 	return s
 }
@@ -69,7 +69,7 @@ func (s *Server) Start() {
 			}
 
 			// handle conn buss
-			dealConn := NewConnection(conn, cid, s.Router)
+			dealConn := NewConnection(conn, cid, s.MsgHandler)
 			cid++
 			go dealConn.Start()
 		}
@@ -90,17 +90,7 @@ func (s *Server) Serve() {
 	select {}
 }
 
-func (s *Server) AddRouter(request ziface.IRouter) {
-	s.Router = request
+func (s *Server) AddRouter(msgId uint32, request ziface.IRouter) {
+	s.MsgHandler.AddRouter(msgId, request)
 	fmt.Println("Add Router Success...")
-}
-
-func CallbackToClient(conn *net.TCPConn, data []byte, count int) error {
-	//回显业务
-	fmt.Println("[Conn Handle] CallBackToClient ... ")
-	if _, err := conn.Write(data[:count]); err != nil {
-		fmt.Println("write back buf err ", err)
-		return errors.New("CallBackToClient error")
-	}
-	return nil
 }
