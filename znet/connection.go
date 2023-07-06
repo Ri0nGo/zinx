@@ -16,6 +16,7 @@ type Connection struct {
 	remoteAddr  string
 	name        string
 	MsgHandler  ziface.IMsgHandler
+	msgChan     chan []byte //  读goroutine 向写goroutine传递消息
 }
 
 func NewConnection(conn *net.TCPConn, connID uint64, handler ziface.IMsgHandler) *Connection {
@@ -27,6 +28,7 @@ func NewConnection(conn *net.TCPConn, connID uint64, handler ziface.IMsgHandler)
 		localAddr:   conn.LocalAddr().String(),
 		remoteAddr:  conn.RemoteAddr().String(),
 		MsgHandler:  handler,
+		msgChan:     make(chan []byte), //msgChan初始化
 	}
 }
 
@@ -46,7 +48,7 @@ func (c *Connection) StartReader() {
 		if err != nil {
 			fmt.Printf("conn id: %d, read msg error: %v \n", c.connID, err)
 			c.exitBufChan <- true
-			continue
+			return
 		}
 
 		// 拆包，获取msgid 和 data len
@@ -54,7 +56,7 @@ func (c *Connection) StartReader() {
 		if err != nil {
 			fmt.Printf("conn id: %d, unpack msg data error: %v \n", c.connID, err)
 			c.exitBufChan <- true
-			continue
+			return
 		}
 
 		// 读取真实数据
@@ -64,7 +66,7 @@ func (c *Connection) StartReader() {
 			if err != nil {
 				fmt.Printf("conn id: %d,  read msg data error: %v \n", c.connID, err)
 				c.exitBufChan <- true
-				continue
+				return
 			}
 			messagePkg.SetData(dataBuf)
 		}
@@ -81,9 +83,30 @@ func (c *Connection) StartReader() {
 	}
 }
 
+func (c *Connection) StartWriter() {
+	fmt.Println("[Writer Goroutine is running]")
+	defer fmt.Println(c.RemoteAddr().String(), "[conn Writer exit!]")
+
+	for {
+		select {
+		case msg := <-c.msgChan:
+			//有数据要写给客户端
+			if _, err := c.conn.Write(msg); err != nil {
+				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+				return
+			}
+		case <-c.exitBufChan:
+			return
+		}
+
+	}
+}
+
 // Start 开始执行
 func (c *Connection) Start() {
 	fmt.Printf("conn id = %d is starting...\n", c.connID)
+
+	go c.StartWriter()
 
 	go c.StartReader()
 
@@ -119,10 +142,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	if err != nil {
 		fmt.Printf("msg id: %d, pack msg data error:", msgId)
 	}
-	_, err = c.conn.Write(msgPackBytes)
-	if err != nil {
-		return err
-	}
+	c.msgChan <- msgPackBytes
 	return nil
 }
 
