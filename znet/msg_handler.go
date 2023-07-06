@@ -2,16 +2,21 @@ package znet
 
 import (
 	"fmt"
+	"zinx/config"
 	"zinx/ziface"
 )
 
 type MsgHandler struct {
-	Apis map[uint32]ziface.IRouter
+	Apis           map[uint32]ziface.IRouter
+	TaskQueue      []chan ziface.IRequest
+	WorkerPoolSize uint32
 }
 
 func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
-		Apis: make(map[uint32]ziface.IRouter),
+		Apis:           make(map[uint32]ziface.IRouter),
+		TaskQueue:      make([]chan ziface.IRequest, config.Conf.WorkPoolSize),
+		WorkerPoolSize: config.Conf.WorkPoolSize,
 	}
 }
 
@@ -40,4 +45,32 @@ func (m *MsgHandler) DoMsgHandler(request ziface.IRequest) error {
 	router.Handler(request)
 	router.AfterRouter(request)
 	return nil
+}
+
+func (m *MsgHandler) SendMsgToQueue(request ziface.IRequest) {
+	workerId := request.GetConn().GetConnID() % uint64(config.Conf.WorkPoolSize)
+	fmt.Printf("Conn Id: %d, Msg Id: ")
+	m.TaskQueue[workerId] <- request
+}
+
+// StartWorker 开启一个worker 去处理链接中handle
+func (m *MsgHandler) StartWorker(workId int, taskQueue chan ziface.IRequest) {
+	fmt.Printf("start work id: %d", workId)
+	for {
+		select {
+		case task := <-taskQueue:
+			m.DoMsgHandler(task)
+		}
+	}
+
+}
+
+// StartWorkerPool 启动协程池
+func (m *MsgHandler) StartWorkerPool() {
+	for i := 0; i < int(m.WorkerPoolSize); i++ {
+		// 创建一个任务池队列
+		m.TaskQueue[i] = make(chan ziface.IRequest, config.Conf.MaxWorkTaskNumber)
+		// 将work id 和任务池队列传递给 worker 监听
+		go m.StartWorker(i, m.TaskQueue[i])
+	}
 }
