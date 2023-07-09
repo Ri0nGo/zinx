@@ -41,6 +41,9 @@ func (s *Server) Start() {
 	fmt.Printf("Server: %s, Address: %s:%d start success....\nt ", s.Name, s.IP, s.Port)
 
 	go func() {
+		// 启动worker协程池
+		s.MsgHandler.StartWorkerPool()
+
 		// 1. create tcp socket
 		addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {

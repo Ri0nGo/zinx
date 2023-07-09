@@ -49,13 +49,13 @@ func (m *MsgHandler) DoMsgHandler(request ziface.IRequest) error {
 
 func (m *MsgHandler) SendMsgToQueue(request ziface.IRequest) {
 	workerId := request.GetConn().GetConnID() % uint64(config.Conf.WorkPoolSize)
-	fmt.Printf("Conn Id: %d, Msg Id: ")
+	fmt.Printf("Conn Id: %d, Msg Id: %d \n", request.GetConn().GetConnID(), request.GetMsg().GetMsgId())
 	m.TaskQueue[workerId] <- request
 }
 
 // StartWorker 开启一个worker 去处理链接中handle
 func (m *MsgHandler) StartWorker(workId int, taskQueue chan ziface.IRequest) {
-	fmt.Printf("start work id: %d", workId)
+	fmt.Printf("start work id: %d \n", workId)
 	for {
 		select {
 		case task := <-taskQueue:

@@ -6,6 +6,6 @@
   "max_conn": 1000,
   "version": "0.4",
 
-  "work_pool_size": 100,
+  "work_pool_size": 10,
   "max_work_task_number": 1000
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"zinx/config"
 	"zinx/ziface"
 )
 
@@ -76,10 +77,12 @@ func (c *Connection) StartReader() {
 			data: messagePkg,
 		}
 
-		err = c.MsgHandler.DoMsgHandler(&request)
-		if err != nil {
-			fmt.Println("exec msg handler error: ", err)
+		if config.Conf.WorkPoolSize > 0 {
+			c.MsgHandler.SendMsgToQueue(&request)
+		} else {
+			go c.MsgHandler.DoMsgHandler(&request)
 		}
+
 	}
 }
 
