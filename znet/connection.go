@@ -9,6 +9,7 @@ import (
 )
 
 type Connection struct {
+	TcpServer   ziface.IServer
 	connID      uint64
 	conn        *net.TCPConn
 	isClosed    bool
@@ -20,8 +21,9 @@ type Connection struct {
 	msgChan     chan []byte //  读goroutine 向写goroutine传递消息
 }
 
-func NewConnection(conn *net.TCPConn, connID uint64, handler ziface.IMsgHandler) *Connection {
+func NewConnection(s ziface.IServer, conn *net.TCPConn, connID uint64, handler ziface.IMsgHandler) *Connection {
 	return &Connection{
+		TcpServer:   s,
 		connID:      connID,
 		conn:        conn,
 		isClosed:    false,
@@ -133,9 +135,13 @@ func (c *Connection) Stop() {
 	c.isClosed = true
 	c.conn.Close()
 
+	// remove conn
+	c.TcpServer.GetConnMgr().Remove(c)
+
 	// notify buf channel the channel will closed
 	c.exitBufChan <- true
 	close(c.exitBufChan)
+	close(c.msgChan)
 }
 
 // SendMsg 发送消息

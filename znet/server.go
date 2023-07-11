@@ -15,6 +15,7 @@ type Server struct {
 	Version   string
 	//Router    ziface.IRouter
 	MsgHandler ziface.IMsgHandler
+	ConnMgr    ziface.IConnManager
 }
 
 func NewServer() ziface.IServer {
@@ -32,6 +33,7 @@ func NewServer() ziface.IServer {
 		Name:       config.Conf.Name,
 		Version:    config.Conf.Version,
 		MsgHandler: NewMsgHandler(),
+		ConnMgr:    NewConnManager(),
 	}
 	return s
 }
@@ -70,9 +72,13 @@ func (s *Server) Start() {
 				fmt.Println("accept conn error: ", err)
 				continue
 			}
-
+			// check conn number
+			if s.ConnMgr.Len() > config.Conf.MaxConn {
+				conn.Close()
+				continue
+			}
 			// handle conn buss
-			dealConn := NewConnection(conn, cid, s.MsgHandler)
+			dealConn := NewConnection(s, conn, cid, s.MsgHandler)
 			cid++
 			go dealConn.Start()
 		}
@@ -96,4 +102,8 @@ func (s *Server) Serve() {
 func (s *Server) AddRouter(msgId uint32, request ziface.IRouter) {
 	s.MsgHandler.AddRouter(msgId, request)
 	fmt.Println("Add Router Success...")
+}
+
+func (s *Server) GetConnMgr() ziface.IConnManager {
+	return s.ConnMgr
 }

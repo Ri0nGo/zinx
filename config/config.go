@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -21,6 +22,7 @@ var Conf *ZinxConfig
 func (zc *ZinxConfig) Reload() {
 	bytes, err := os.ReadFile("config/config.json")
 	if err != nil {
+		fmt.Println(os.Getwd())
 		panic(err)
 	}
 
